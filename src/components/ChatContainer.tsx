@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Chat, Message } from "../types";
 import {
   Button,
@@ -19,26 +19,25 @@ import {
   useDisclosure,
 } from "@nextui-org/react";
 import { MessagesContainer } from "./MessagesContainer";
-import { SendMessage } from ".";
+import { SendMessage } from "./index";
 import { useDoc } from "../hooks/useDoc";
 import { useUser } from "@clerk/clerk-react";
 import { username } from "../lib/username";
 import { MoreHorizontal } from "lucide-react";
 import { chatIdx } from "../lib/chatIdx";
+import { useChat } from "../hooks/useChat";
 
 export interface ChatContainerProps {
   chat: Chat;
 }
 
 export const ChatContainer: React.FC<ChatContainerProps> = ({ chat }) => {
-  const { doc, changeDoc } = useDoc();
+  const { changeDoc } = useDoc();
   const { user } = useUser();
   const [currentReply, setCurrentReply] = useState<number | undefined>(
     undefined
   );
-  const [chatName, setChatName] = useState(
-    doc?.chats[chatIdx(doc, chat)]?.name || ""
-  );
+  const [chatName, setChatName] = useState(chat?.name || "");
   const {
     isOpen: isRenameOpen,
     onOpenChange: onOpenRenameChange,
@@ -52,13 +51,59 @@ export const ChatContainer: React.FC<ChatContainerProps> = ({ chat }) => {
     onClose: onConfirmDeleteClose,
   } = useDisclosure();
 
+  const send = (message: string) => {
+    changeDoc((d) => {
+      const newMessage: Message =
+        currentReply !== undefined
+          ? {
+              id: chat.messages.length,
+              content: message,
+              senderId: user?.id || "",
+              senderName: username(user),
+              reply: currentReply,
+            }
+          : {
+              id: chat.messages.length,
+              content: message,
+              senderId: user?.id || "",
+              senderName: username(user),
+            };
+
+      const chatIndex = d.chats.indexOf(chat);
+      d.chats[chatIndex].messages.push(newMessage);
+      d.chats[chatIndex].users.push(username(user));
+
+      const users = d?.chats[chatIndex]?.users;
+
+      d.chats[chatIndex].users = Array.from(
+        new Set([...users, username(user)])
+      );
+
+      setCurrentReply(undefined);
+    });
+  };
+
+  const [mentions, setMentions] = useState<string[]>([]);
+
+  const ChatProvider = useChat({
+    chat,
+    currentReply,
+    setCurrentReply,
+    send,
+    mentions,
+    setMentions,
+  });
+
+  useEffect(() => {
+    console.log("mentions:", mentions);
+  }, [mentions]);
+
   return (
-    <>
+    <ChatProvider>
       <Modal isOpen={isRenameOpen} onOpenChange={onOpenRenameChange}>
         <ModalContent>
           <ModalHeader>
-            Rename chat from "{doc?.chats[chatIdx(doc, chat)]?.name}" to "
-            {chatName}"
+            Rename chat from "{chat?.name}" to "{chatName}"
           </ModalHeader>
           <ModalBody>
             <Input
@@ -112,6 +157,8 @@ export const ChatContainer: React.FC<ChatContainerProps> = ({ chat }) => {
           </ModalFooter>
         </ModalContent>
       </Modal>
+      {/* <div className="w-[500px] relative">
+        <MentionsMenu /> */}
       <Card className="w-full max-w-[400px]">
         <CardHeader className="flex items-center justify-between">
           <span className="text-lg">{chat?.name}</span>
@@ -144,43 +191,12 @@ export const ChatContainer: React.FC<ChatContainerProps> = ({ chat }) => {
           </Dropdown>
         </CardHeader>
         <CardBody>
-          <SendMessage
-            currentReply={currentReply}
-            setCurrentReply={setCurrentReply}
-            chatIndex={doc?.chats.indexOf(chat) ?? -1}
-            send={(message) => {
-              changeDoc((d) => {
-                const newMessage: Message =
-                  currentReply !== undefined
-                    ? {
-                        id: chat.messages.length,
-                        content: message,
-                        senderId: user?.id || "",
-                        senderName: username(user),
-                        reply: currentReply,
-                      }
-                    : {
-                        id: chat.messages.length,
-                        content: message,
-                        senderId: user?.id || "",
-                        senderName: username(user),
-                      };
-
-                const chatIndex = d.chats.indexOf(chat);
-                d.chats[chatIndex].messages.push(newMessage);
-
-                setCurrentReply(undefined);
-              });
-            }}
-          />
+          <SendMessage />
           <Divider className="my-4" />
-          <MessagesContainer
-            setCurrentReply={setCurrentReply}
-            messages={chat?.messages || []}
-            chat={chat}
-          />
+          <MessagesContainer />
         </CardBody>
       </Card>
-    </>
+      {/* </div> */}
+    </ChatProvider>
   );
 };

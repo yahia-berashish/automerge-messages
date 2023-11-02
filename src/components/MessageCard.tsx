@@ -14,6 +14,7 @@ import {
 } from "@nextui-org/react";
 import { MoreHorizontal } from "lucide-react";
 import { useDoc } from "../hooks/useDoc";
+import { chatIdx } from "../lib/chatIdx";
 
 export interface MessageCardProps {
   message: Message;
@@ -51,9 +52,18 @@ export const MessageCard: React.FC<MessageCardProps> = ({
               key="delete-message"
               onClick={() => {
                 changeDoc((d) => {
-                  const messageIndex =
-                    d.chats[chat.id].messages.indexOf(message);
-                  delete d.chats[chat.id].messages[messageIndex];
+                  const messageIndex = (
+                    (d?.chats || [])[chatIdx(d, chat)]?.messages || []
+                  ).indexOf(message);
+
+                  console.log(
+                    "HELLO WORLD:",
+                    d?.chats?.findIndex(({ id }) => chat?.id === id)
+                  );
+
+                  delete ((d?.chats || [])[chatIdx(d, chat)]?.messages || [])[
+                    messageIndex
+                  ];
                 });
               }}
               color="danger"
@@ -72,7 +82,12 @@ export const MessageCard: React.FC<MessageCardProps> = ({
           <CardFooter>
             <span className="text-xs">
               Replying to "
-              {doc?.chats[chat.id].messages[message.reply]?.content}"
+              {
+                ((doc?.chats || [])[chatIdx(doc, chat)]?.messages || [])[
+                  message.reply
+                ]?.content
+              }
+              "
             </span>
           </CardFooter>
         </>

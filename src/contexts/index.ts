@@ -18,3 +18,4 @@ export {
   type SidebarContextInterface,
   SidebarProvider,
 } from "./SidebarContext";
+export { ChatContext, type ChatContextInterface } from "./ChatContext";

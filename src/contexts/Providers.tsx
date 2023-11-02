@@ -17,8 +17,6 @@ if (!import.meta.env.VITE_CLERK_PUBLISHABLE_KEY) {
 const clerkPubKey: string = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
 export const Providers: React.FC<ProvidersProps> = ({ children }) => {
-  console.log("clerkPubKey:", clerkPubKey);
-
   return (
     <ClerkProvider publishableKey={clerkPubKey}>
       <BrowserRouter>

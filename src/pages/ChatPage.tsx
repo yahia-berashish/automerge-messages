@@ -14,7 +14,7 @@ export const ChatPage: React.FC = () => {
   }
 
   return (
-    <section className="w-full min-h-screen flex items-center justify-center">
+    <section className="w-full relative min-h-screen flex items-center justify-center">
       <ChatContainer chat={(doc?.chats || [])[chatId]} />
     </section>
   );
